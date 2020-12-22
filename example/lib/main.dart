@@ -25,10 +25,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  String _wifiName = 'click button to get wifi ssid.';
-  int level = 0;
-  String _ip = 'click button to get ip.';
-  List<WifiResult> ssidList = [];
+  ConnectedWifiResult? result;
+  List<ScannedWifiResult> ssidList = [];
   String ssid = '', password = '';
 
   @override
@@ -67,10 +65,15 @@ class _MyHomePageState extends State<MyHomePage> {
                 onPressed: _getWifiName,
               ),
               Offstage(
-                offstage: level == 0,
-                child: Image.asset(level == 0 ? 'images/wifi1.png' : 'images/wifi$level.png', width: 28, height: 21),
+                offstage: result?.level == 0,
+                child: Image.asset(
+                    (result?.level ?? 0) == 0
+                        ? 'images/wifi1.png'
+                        : 'images/wifi${result!.level}.png',
+                    width: 28,
+                    height: 21),
               ),
-              Text(_wifiName),
+              Text(result?.ssid ?? 'Click button to get ssid'),
             ],
           ),
           Row(
@@ -79,7 +82,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: Text('ip'),
                 onPressed: _getIP,
               ),
-              Text(_ip),
+              Text(result?.ip ?? 'Click button to get ip'),
             ],
           ),
           TextField(
@@ -117,7 +120,8 @@ class _MyHomePageState extends State<MyHomePage> {
     } else {
       return Column(children: <Widget>[
         ListTile(
-          leading: Image.asset('images/wifi${ssidList[index - 1].level}.png', width: 28, height: 21),
+          leading: Image.asset('images/wifi${ssidList[index - 1].level}.png',
+              width: 28, height: 21),
           title: Text(
             ssidList[index - 1].ssid,
             style: TextStyle(
@@ -133,26 +137,27 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void loadData() async {
-    Wifi.list('').then((list) {
+    if (await Wifi.requestLocationPermission()) {
+      final list = await Wifi.listNetworks();
       setState(() {
         ssidList = list;
       });
-    });
+    }
   }
 
   Future<Null> _getWifiName() async {
-    int l = await Wifi.level;
-    String wifiName = await Wifi.ssid;
-    setState(() {
-      level = l;
-      _wifiName = wifiName;
-    });
+    if (await Wifi.requestLocationPermission()) {
+      final info = await Wifi.currentNetwork;
+      setState(() {
+        result = info;
+      });
+    }
   }
 
   Future<Null> _getIP() async {
-    String ip = await Wifi.ip;
+    final info = await Wifi.currentNetwork;
     setState(() {
-      _ip = ip;
+      result = info;
     });
   }
 
